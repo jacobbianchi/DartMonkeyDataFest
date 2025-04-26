@@ -2,8 +2,8 @@ import re
 from bs4 import BeautifulSoup
 from lxml import etree
 
-input_file = "/Users/adityacode/DartMonkeyDataFest/aditya/company_growth/input.txt"
-output_file = "/Users/adityacode/DartMonkeyDataFest/aditya/company_growth/company.txt"
+input_file = "/Users/anthonychen/Desktop/Year3/DF2025/DartMonkeyDataFest/external_data/company_growth/input.txt"
+output_file = "/Users/anthonychen/Desktop/Year3/DF2025/DartMonkeyDataFest/external_data/company_growth/company.txt"
 
 with open(input_file, "r", encoding="utf-8") as file:
     html_content = file.read()
