@@ -15,13 +15,13 @@ def extract_addresses(html_content):
     addresses = [re.sub(r'\s+', ' ', addr) for addr in addresses]
     
     # Write addresses to file, separated by commas
-    with open('/Users/adityacode/DartMonkeyDataFest/aditya/employee_growth/addresses.txt', 'w', encoding='utf-8') as f:
+    with open('/Users/adityacode/DartMonkeyDataFest/external_data/employee_growth/addresses.txt', 'w', encoding='utf-8') as f:
         f.write(';\n'.join(addresses))
 
 # Example usage
 if __name__ == "__main__":
     # Sample HTML content (can be replaced with file input or URL fetch)
-    with open("/Users/adityacode/DartMonkeyDataFest/aditya/employee_growth/input.txt", "r", encoding="utf-8") as file:
+    with open("/Users/adityacode/DartMonkeyDataFest/external_data/employee_growth/input.txt", "r", encoding="utf-8") as file:
         sample_html = file.read()
     
     extract_addresses(sample_html)
