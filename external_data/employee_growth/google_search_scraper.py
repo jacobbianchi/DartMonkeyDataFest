@@ -9,8 +9,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # File paths
-input_file = "/Users/adityacode/DartMonkeyDataFest/aditya/employee_growth/sample_homeowner.txt"
-output_file = "/Users/adityacode/DartMonkeyDataFest/aditya/employee_growth/search_results.txt"
+input_file = "/Users/adityacode/DartMonkeyDataFest/external_data/employee_growth/homeowner_filtered.txt"
+output_file = "/Users/adityacode/DartMonkeyDataFest/external_data/employee_growth/search_results.txt"
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -95,6 +95,7 @@ def main():
     
     try:
         # Read homeowners.txt
+        counter = 0
         with open(input_file, "r", encoding="utf-8") as f:
             lines = f.readlines()
         
@@ -113,6 +114,8 @@ def main():
                 
                 # Append to file
                 append_to_file(address, name, formatted_results)
+                counter += 1
+                logger.info(f"Processed {counter} entries")
                 
                 # Random delay to avoid overwhelming the server
                 time.sleep(random.uniform(1.5, 3))

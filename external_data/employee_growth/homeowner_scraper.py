@@ -8,13 +8,15 @@ import time
 import os
 
 # Path to your text file with semicolon-separated addresses
-ADDRESS_FILE = "/Users/adityacode/DartMonkeyDataFest/aditya/employee_growth/addresses.txt"
-OUTPUT_FILE = "/Users/adityacode/DartMonkeyDataFest/aditya/employee_growth/homeowner.txt"
+ADDRESS_FILE = "/Users/adityacode/DartMonkeyDataFest/external_data/employee_growth/addresses.txt"
+OUTPUT_FILE = "/Users/adityacode/DartMonkeyDataFest/external_data/employee_growth/homeowner.txt"
 
 # Initialize Selenium WebDriver (assuming Chrome)
 options = webdriver.ChromeOptions()
 options.add_argument("--headless")  # Run in headless mode
 driver = webdriver.Chrome(options=options)
+
+stwords = set("STREET AVE BLVD RD DR CT CIR HWY PKWY ST".split())
 
 def parse_address(address):
     # Split by comma to get street part
@@ -36,8 +38,12 @@ def parse_address(address):
         direction = street_name_words[0]
         street_name_words = street_name_words[1:]
     
-    # Ignore the last word (street type like St, Ave, etc.)
-    if street_name_words:
+    street_name_words = street_name_words[:-1]
+
+    if street_name_words[-1] == "APT":
+        street_name_words = street_name_words[:-1]
+
+    if street_name_words[-1].upper() in stwords:
         street_name_words = street_name_words[:-1]
     
     # Join remaining words for street name
