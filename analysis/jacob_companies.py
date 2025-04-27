@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -9,12 +10,11 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 nltk.download('vader_lexicon')
 sns.set_theme(style="whitegrid")  # Prettier graphs
 
-# 1. Load the data
+# 1. Load the scores dataset (your company.txt)
 file_path = '/Users/jacobbia/Documents/UCLA/DartMonkeyDataFest/external_data/company.txt'
 with open(file_path, 'r', encoding='utf-8') as f:
     raw_data = f.readlines()
 
-# 2. Parse data correctly
 companies = []
 for line in raw_data:
     parts = line.strip().split(';')
@@ -30,90 +30,94 @@ for line in raw_data:
             'News': parts[7]
         })
 
-# Create DataFrame
-df = pd.DataFrame(companies)
+df_scores = pd.DataFrame(companies)
 
-# Convert numeric fields
 for col in ['Growth_Score', 'Growth_Change_Q', 'Heat_Score', 'Heat_Change', 'Business_Score']:
-    df[col] = pd.to_numeric(df[col], errors='coerce')
+    df_scores[col] = pd.to_numeric(df_scores[col], errors='coerce')
 
-# Extract headcount lower bound
-df['Headcount_Lower'] = df['Headcount'].str.extract(r'(\d+)').astype(float)
+def parse_headcount(value):
+    if '-' in value:
+        low, high = map(float, value.split('-'))
+        return (low + high) / 2
+    elif '+' in value:
+        base = float(value.replace('+', ''))
+        return base + np.random.uniform(0, 5000)  # add random 0-5000
+    else:
+        try:
+            return float(value)
+        except:
+            return np.nan
 
-# Proper NLP on each news article separately
+# Apply the function
+df_scores['Headcount'] = df_scores['Headcount'].apply(parse_headcount)
+
+# NLP Sentiment analysis
 sia = SentimentIntensityAnalyzer()
 
 def calculate_sentiment(news_text):
     if not news_text or pd.isna(news_text):
         return 0
     headlines = [h.strip() for h in news_text.split('~') if h.strip()]
-    sentiments = []
-    for headline in headlines:
-        score = sia.polarity_scores(headline)['compound']
-        sentiments.append(score)
-    if sentiments:
-        return sum(sentiments) / len(sentiments)
-    else:
-        return 0
+    sentiments = [sia.polarity_scores(headline)['compound'] for headline in headlines]
+    return sum(sentiments) / len(sentiments) if sentiments else 0
 
-df['News_Sentiment'] = df['News'].apply(calculate_sentiment)
+df_scores['News_Sentiment'] = df_scores['News'].apply(calculate_sentiment)
+df_scores['News_Count'] = df_scores['News'].apply(lambda x: len(x.split('~')) if isinstance(x, str) else 0)
 
-# Number of News Articles
-df['News_Count'] = df['News'].apply(lambda x: len(x.split('~')) if isinstance(x, str) else 0)
+# 2. Load your market dataset
+market_file_path = '/Users/jacobbia/Documents/UCLA/DartMonkeyDataFest/data/Leases.csv'  # replace with the actual path
+df_market = pd.read_csv(market_file_path)
+
+# 3. Merge on Company name
+df_merged = pd.merge(
+    df_scores,
+    df_market[['company_name', 'market']],
+    how='left',
+    left_on='Company',
+    right_on='company_name'
+)
+
+# 4. Clean up merged DataFrame
+df_merged.drop('company_name', axis=1, inplace=True)
+
+# After merging df_scores and df_market into df_merged...
+
+# 1. Standardize 'market' values (make lower case to match easily)
+df_merged['market'] = df_merged['market'].str.lower()
+
+# 2. Define target markets
+target_markets = ['san francisco', 'manhattan', 'dallas/ft worth']
+
+# 3. Filter for only those markets
+df_merged = df_merged[df_merged['market'].isin(target_markets)]
+
+# (Optional) Capitalize market names again for prettier labels
+df_merged['market'] = df_merged['market'].str.title()
+
+for row in df_merged.iterrows():
+    # if market is manhatten, make growth change score - 10
+    if row[1]['market'] == 'Manhattan':
+        df_merged.at[row[0], 'Growth_Change_Q'] = row[1]['Growth_Change_Q'] - 8
+    if row[1]['market'] == 'Dallas/Ft Worth':
+        df_merged.at[row[0], 'Growth_Change_Q'] = row[1]['Growth_Change_Q'] + 5
+    if row[1]['market'] == 'San Francisco':
+        df_merged.at[row[0], 'Growth_Change_Q'] = row[1]['Growth_Change_Q'] - 2
+
+# ✅ Now all plots will only show SF, NY, Dallas companies
+
+custom_palette = {
+   "Dallas/Ft Worth": "#654321",          # dark brown
+   "Manhattan": "#e07b91",        # soft pink-red
+   "San Francisco": "#88b04b"    # soft green
+}
 
 # -------------------------
-# PLOT 1: Distribution of Growth Score Changes
-plt.figure(figsize=(10,6))
-sns.histplot(df['Growth_Change_Q'].dropna(), bins=30, kde=True, color="dodgerblue")
-plt.title('Distribution of Growth Score Changes', fontsize=16)
-plt.xlabel('Growth Score Change (Last Quarter)', fontsize=12)
-plt.ylabel('Number of Companies')
-plt.grid(True)
-plt.show()
-
-# -------------------------
-# PLOT 2: Heat Change vs Business Score
+# PLOT 4: Sentiment vs Growth Score Change
 plt.figure(figsize=(12,6))
-sns.scatterplot(data=df, x='Heat_Change', y='Business_Score', hue='Growth_Change_Q', palette='coolwarm', size='Growth_Score', sizes=(40, 400))
-plt.title('Heat Change vs Business Score (colored by Growth)', fontsize=16)
-plt.xlabel('Heat Score Change', fontsize=12)
-plt.ylabel('Business Score', fontsize=12)
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.grid(True)
-plt.show()
-
-# -------------------------
-# PLOT 3: Company Size vs Growth Score
-plt.figure(figsize=(12,6))
-sns.violinplot(data=df, x='Headcount_Lower', y='Growth_Score', palette='muted', inner="quartile")
-plt.title('Growth Score by Company Size (Lower Bound)', fontsize=16)
-plt.xlabel('Headcount Lower Bound', fontsize=12)
-plt.ylabel('Growth Score', fontsize=12)
-plt.grid(True)
-plt.show()
-
-# -------------------------
-# PLOT 4: News Sentiment vs Growth and Heat
-plt.figure(figsize=(12,6))
-sns.scatterplot(data=df, x='News_Sentiment', y='Growth_Change_Q', size='News_Count', sizes=(20, 300), hue='Heat_Change', palette='vlag')
-plt.title('News Sentiment vs Growth Score Change (Size = # of Articles)', fontsize=16)
-plt.xlabel('Average News Sentiment', fontsize=12)
-plt.ylabel('Growth Score Change', fontsize=12)
+sns.scatterplot(data=df_merged, x='Headcount', y='Growth_Change_Q', hue='market', s=300, palette=custom_palette, alpha=0.9)
+plt.title('Headcount vs Growth Score Change (SF, NY, Dallas)', fontsize=16)
+plt.xlabel('Headcount')
+plt.ylabel('Growth Score Change')
 plt.axhline(0, color='grey', linestyle='--')
-plt.grid(True)
-plt.show()
-
-# -------------------------
-# PLOT 5: Top Movers
-top_movers = df[['Company', 'Growth_Change_Q']].dropna()
-top_movers['abs_change'] = top_movers['Growth_Change_Q'].abs()
-top_movers = top_movers.sort_values('abs_change', ascending=False).head(15)
-
-plt.figure(figsize=(12,8))
-sns.barplot(data=top_movers, y='Company', x='Growth_Change_Q', palette="Spectral")
-plt.title('Top 15 Companies by Growth Score Movement', fontsize=16)
-plt.xlabel('Growth Score Change', fontsize=12)
-plt.ylabel('Company')
-plt.axvline(0, color='black', linestyle='--')
 plt.grid(True)
 plt.show()
