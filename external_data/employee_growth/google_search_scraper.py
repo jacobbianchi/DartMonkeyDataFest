@@ -9,7 +9,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # File paths
-input_file = "/Users/adityacode/DartMonkeyDataFest/aditya/employee_growth/sample_homeowner.txt"
+input_file = "/Users/adityacode/DartMonkeyDataFest/external_data/employee_growth/homeowner_filtered.txt"
 output_file = "/Users/adityacode/DartMonkeyDataFest/aditya/employee_growth/search_results.txt"
 
 # Setup logging
