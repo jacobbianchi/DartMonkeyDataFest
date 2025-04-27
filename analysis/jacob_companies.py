@@ -94,15 +94,6 @@ df_merged = df_merged[df_merged['market'].isin(target_markets)]
 # (Optional) Capitalize market names again for prettier labels
 df_merged['market'] = df_merged['market'].str.title()
 
-for row in df_merged.iterrows():
-    # if market is manhatten, make growth change score - 10
-    if row[1]['market'] == 'Manhattan':
-        df_merged.at[row[0], 'Growth_Change_Q'] = row[1]['Growth_Change_Q'] - 8
-    if row[1]['market'] == 'Dallas/Ft Worth':
-        df_merged.at[row[0], 'Growth_Change_Q'] = row[1]['Growth_Change_Q'] + 5
-    if row[1]['market'] == 'San Francisco':
-        df_merged.at[row[0], 'Growth_Change_Q'] = row[1]['Growth_Change_Q'] - 2
-
 # ✅ Now all plots will only show SF, NY, Dallas companies
 
 custom_palette = {
